@@ -1,0 +1,30 @@
+# ============================================================
+# Back-end/requirements.txt
+# Dependencias del Sistema Contable ContaFlow
+# ============================================================
+
+# API y servidor
+fastapi
+uvicorn[standard]
+python-multipart
+
+# IA - Gemini (nueva API, reemplaza google-generativeai)
+google-genai
+
+# Base de datos SQL Server
+pyodbc
+
+# Variables de entorno
+python-dotenv
+
+# Exportación
+openpyxl
+reportlab
+
+# Lectura de archivos
+pandas
+pdfplumber
+pytesseract
+Pillow
+SpeechRecognition
+pydub

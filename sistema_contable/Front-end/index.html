@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema Contable | ContaFlow</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <div class="brand-text">
+        <span class="brand-name">ContaFlow</span>
+        <span class="brand-sub">Sistema Contable</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-label">PRINCIPAL</span>
+      <a href="#" class="nav-item active" data-section="upload">
+        <i class="fa-solid fa-file-arrow-up"></i><span>Cargar Enunciado</span>
+      </a>
+      <a href="#" class="nav-item" data-section="diario">
+        <i class="fa-solid fa-book"></i><span>Libro Diario</span>
+      </a>
+      <a href="#" class="nav-item" data-section="mayor">
+        <i class="fa-solid fa-book-open"></i><span>Libro Mayor</span>
+      </a>
+
+      <span class="nav-label">ESTADOS</span>
+      <a href="#" class="nav-item" data-section="balance">
+        <i class="fa-solid fa-scale-balanced"></i><span>Balance de Comprobación</span>
+      </a>
+      <a href="#" class="nav-item" data-section="situacion">
+        <i class="fa-solid fa-building-columns"></i><span>Situación Financiera</span>
+      </a>
+      <a href="#" class="nav-item" data-section="resultados">
+        <i class="fa-solid fa-chart-pie"></i><span>Estado de Resultados</span>
+      </a>
+
+      <span class="nav-label">EXPORTAR</span>
+      <a href="#" class="nav-item" id="btn-export-excel">
+        <i class="fa-solid fa-file-excel"></i><span>Descargar Excel</span>
+      </a>
+      <a href="#" class="nav-item" id="btn-export-pdf">
+        <i class="fa-solid fa-file-pdf"></i><span>Descargar PDF</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-status" id="status-dot">
+        <span class="dot dot-yellow"></span>
+        <span>Verificando backend...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main">
+    <header class="topbar">
+      <button class="menu-toggle" id="menu-toggle">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="topbar-title" id="topbar-title">Cargar Enunciado</div>
+      <div class="topbar-actions">
+        <button class="btn-generate-all" id="btn-generate-all">
+          <i class="fa-solid fa-bolt"></i> <span>Generar Todo el Sistema</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="content-wrapper">
+
+      <!-- ===== UPLOAD ===== -->
+      <section class="section active" id="section-upload">
+        <div class="section-hero">
+          <h1 class="section-title">Carga tu Enunciado Contable</h1>
+          <p class="section-sub">Sube un archivo, escribe o dicta el enunciado con el micrófono. El sistema lo interpretará con IA y generará todos los libros contables automáticamente.</p>
+        </div>
+
+        <div class="upload-grid">
+          <!-- ARCHIVO -->
+          <div class="card upload-card" id="drop-zone">
+            <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <h3>Subir Archivo</h3>
+            <p>Arrastra aquí o haz clic para seleccionar</p>
+            <div class="format-badges">
+              <span class="badge badge-excel"><i class="fa-solid fa-file-excel"></i> Excel</span>
+              <span class="badge badge-pdf"><i class="fa-solid fa-file-pdf"></i> PDF</span>
+              <span class="badge badge-img"><i class="fa-solid fa-image"></i> Imagen</span>
+              <span class="badge badge-audio"><i class="fa-solid fa-microphone"></i> Audio</span>
+              <span class="badge badge-csv"><i class="fa-solid fa-file-csv"></i> CSV</span>
+            </div>
+            <input type="file" id="file-input"
+              accept=".xlsx,.xls,.pdf,.png,.jpg,.jpeg,.bmp,.tiff,.webp,.mp3,.wav,.ogg,.m4a,.flac,.csv"
+              hidden />
+            <button class="btn-primary" onclick="document.getElementById('file-input').click()">
+              <i class="fa-solid fa-folder-open"></i> Seleccionar Archivo
+            </button>
+            <div class="file-selected" id="file-name-display" style="display:none;">
+              <i class="fa-solid fa-check-circle"></i> <span id="file-name-text"></span>
+            </div>
+          </div>
+
+          <!-- TEXTO + MICRÓFONO -->
+          <div class="card text-card">
+            <div class="text-card-header">
+              <i class="fa-solid fa-keyboard"></i>
+              <h3>Escribir o Dictar Enunciado</h3>
+            </div>
+
+            <!-- MICRÓFONO -->
+            <div class="mic-section" id="mic-section">
+              <div class="mic-info">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>Usa el micrófono para dictar el enunciado — el texto aparecerá abajo automáticamente</span>
+              </div>
+
+              <div class="mic-controls">
+                <!-- Botón principal del micrófono -->
+                <button class="btn-mic" id="btn-mic" title="Activar micrófono">
+                  <div class="mic-btn-inner">
+                    <i class="fa-solid fa-microphone" id="mic-icon"></i>
+                  </div>
+                  <span id="mic-label">Activar Micrófono</span>
+                </button>
+
+                <!-- Indicadores de estado -->
+                <div class="mic-status-area">
+                  <div class="mic-visualizer" id="mic-visualizer" style="display:none;">
+                    <div class="mic-bar"></div>
+                    <div class="mic-bar"></div>
+                    <div class="mic-bar"></div>
+                    <div class="mic-bar"></div>
+                    <div class="mic-bar"></div>
+                    <div class="mic-bar"></div>
+                    <div class="mic-bar"></div>
+                  </div>
+                  <div class="mic-status-badge" id="mic-status-badge">
+                    <span class="mic-dot mic-dot-idle"></span>
+                    <span id="mic-status-text">Listo para grabar</span>
+                  </div>
+                </div>
+
+                <!-- Botón para detener -->
+                <button class="btn-mic-stop" id="btn-mic-stop" style="display:none;" title="Detener grabación">
+                  <i class="fa-solid fa-stop"></i>
+                  <span>Detener</span>
+                </button>
+              </div>
+
+              <!-- Indicador de idioma -->
+              <div class="mic-lang-selector">
+                <i class="fa-solid fa-globe" style="color:var(--text-muted); font-size:12px;"></i>
+                <select id="mic-lang" title="Idioma de reconocimiento">
+                  <option value="es-PE" selected>Español (Perú)</option>
+                  <option value="es-ES">Español (España)</option>
+                  <option value="es-MX">Español (México)</option>
+                  <option value="en-US">English (US)</option>
+                </select>
+              </div>
+
+              <!-- Alerta de navegador no compatible -->
+              <div class="mic-browser-warning" id="mic-browser-warning" style="display:none;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Tu navegador no soporta reconocimiento de voz. Usa <strong>Chrome</strong> o <strong>Edge</strong>.
+              </div>
+
+              <!-- Texto parcial siendo reconocido (interim) -->
+              <div class="mic-interim" id="mic-interim" style="display:none;">
+                <i class="fa-solid fa-ellipsis mic-interim-icon"></i>
+                <span id="mic-interim-text"></span>
+              </div>
+            </div>
+
+            <textarea id="text-input"
+              placeholder="Ej: El 1 de enero de 2024, la empresa aportó S/ 50,000 como capital en efectivo. El 5 de enero compró mercaderías por S/ 20,000 al crédito...">
+            </textarea>
+
+            <div class="text-card-footer">
+              <span class="char-count"><span id="char-count">0</span> caracteres</span>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn-mic-clear" id="btn-mic-clear-text" title="Limpiar solo texto dictado" style="display:none;">
+                  <i class="fa-solid fa-microphone-slash"></i> Limpiar dictado
+                </button>
+                <button class="btn-clear-text" id="btn-clear-text">
+                  <i class="fa-solid fa-trash-can"></i> Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTÓN PROCESAR -->
+        <div class="process-area">
+          <button class="btn-process" id="btn-process">
+            <i class="fa-solid fa-brain"></i>
+            <span>Interpretar y Procesar Enunciado</span>
+            <div class="btn-glow"></div>
+          </button>
+        </div>
+
+        <!-- LOADER -->
+        <div class="loader-overlay" id="loader" style="display:none;">
+          <div class="loader-box">
+            <div class="loader-spinner"></div>
+            <p class="loader-text" id="loader-text">Interpretando enunciado con IA...</p>
+            <div class="loader-steps">
+              <div class="step" id="step1"><i class="fa-solid fa-circle-notch fa-spin"></i> Leyendo documento</div>
+              <div class="step" id="step2"><i class="fa-solid fa-circle"></i> Identificando cuentas</div>
+              <div class="step" id="step3"><i class="fa-solid fa-circle"></i> Registrando asientos</div>
+              <div class="step" id="step4"><i class="fa-solid fa-circle"></i> Generando estados financieros</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULTADO -->
+        <div class="result-preview card" id="result-preview" style="display:none;">
+          <div class="result-header">
+            <i class="fa-solid fa-check-circle" style="color:var(--accent-green)"></i>
+            <h3>¡Enunciado procesado exitosamente!</h3>
+          </div>
+          <div class="result-stats" id="result-stats"></div>
+          <div class="result-actions">
+            <button class="btn-secondary" onclick="showSection('diario')">Ver Libro Diario</button>
+            <button class="btn-secondary" onclick="showSection('mayor')">Ver Libro Mayor</button>
+            <button class="btn-secondary" onclick="showSection('balance')">Ver Balance</button>
+            <button class="btn-primary" id="btn-generate-all-2">
+              <i class="fa-solid fa-bolt"></i> Ver Todo el Sistema
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== LIBRO DIARIO ===== -->
+      <section class="section" id="section-diario">
+        <div class="section-header-row">
+          <div>
+            <h2 class="section-title-sm">Libro Diario</h2>
+            <p class="section-sub-sm">Registro cronológico de todos los asientos contables</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn-action" onclick="loadSection('diario')"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            <button class="btn-action btn-excel" onclick="exportar('excel','diario')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+            <button class="btn-action btn-pdf" onclick="exportar('pdf','diario')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div class="table-container card" id="table-diario">
+          <div class="empty-state"><i class="fa-solid fa-book"></i><p>Carga un enunciado para ver el Libro Diario</p></div>
+        </div>
+        <div class="table-totals" id="totals-diario" style="display:none;"></div>
+      </section>
+
+      <!-- ===== LIBRO MAYOR ===== -->
+      <section class="section" id="section-mayor">
+        <div class="section-header-row">
+          <div>
+            <h2 class="section-title-sm">Libro Mayor</h2>
+            <p class="section-sub-sm">Saldos acumulados por cuenta contable</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn-action" onclick="loadSection('mayor')"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            <button class="btn-action btn-excel" onclick="exportar('excel','mayor')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+            <button class="btn-action btn-pdf" onclick="exportar('pdf','mayor')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div id="mayor-container"></div>
+      </section>
+
+      <!-- ===== BALANCE ===== -->
+      <section class="section" id="section-balance">
+        <div class="section-header-row">
+          <div>
+            <h2 class="section-title-sm">Balance de Comprobación</h2>
+            <p class="section-sub-sm">Verificación de igualdad entre Debe y Haber</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn-action" onclick="loadSection('balance')"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            <button class="btn-action btn-excel" onclick="exportar('excel','balance')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+            <button class="btn-action btn-pdf" onclick="exportar('pdf','balance')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div class="table-container card" id="table-balance">
+          <div class="empty-state"><i class="fa-solid fa-scale-balanced"></i><p>Sin datos disponibles</p></div>
+        </div>
+        <div class="balance-check-box" id="balance-check" style="display:none;"></div>
+      </section>
+
+      <!-- ===== SITUACION ===== -->
+      <section class="section" id="section-situacion">
+        <div class="section-header-row">
+          <div>
+            <h2 class="section-title-sm">Estado de Situación Financiera</h2>
+            <p class="section-sub-sm">Balance General — Activo = Pasivo + Patrimonio</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn-action" onclick="loadSection('situacion')"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            <button class="btn-action btn-excel" onclick="exportar('excel','situacion')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+            <button class="btn-action btn-pdf" onclick="exportar('pdf','situacion')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div id="situacion-container"></div>
+      </section>
+
+      <!-- ===== RESULTADOS ===== -->
+      <section class="section" id="section-resultados">
+        <div class="section-header-row">
+          <div>
+            <h2 class="section-title-sm">Estado de Resultados</h2>
+            <p class="section-sub-sm">Ganancias y Pérdidas del Período</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn-action" onclick="loadSection('resultados')"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            <button class="btn-action btn-excel" onclick="exportar('excel','resultados')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+            <button class="btn-action btn-pdf" onclick="exportar('pdf','resultados')"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div id="resultados-container"></div>
+      </section>
+
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </main>
+
+  <script src="JS/api.js"></script>
+  <script src="JS/render.js"></script>
+  <script src="JS/app.js"></script>
+</body>
+</html>
