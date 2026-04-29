@@ -1,17 +1,29 @@
 # ============================================================
 # libro_mayor.py
 # Sistema Contable - Generación del Libro Mayor
-# Corregido: solo cuentas de 2 dígitos
+# CORRECCIÓN: saldo acumulado respeta la naturaleza de la cuenta
+#   Cuentas Deudoras  (1x,2x,3x,6x) → saldo = Debe - Haber
+#   Cuentas Acreedoras(4x,5x,7x,8x) → saldo = Haber - Debe
 # ============================================================
 
 from conexion_bd import obtener_conexion, cerrar_conexion
 
+# ─── Cuentas cuyo saldo normal es HABER (acreedoras) ─────────
+# Se identifica por el primer dígito del código de 2 dígitos
+_PRIMER_DIGITO_HABER = {4, 5, 7, 8}   # Pasivo, Patrimonio, Ingresos, Cierre
+
+def _es_cuenta_haber(cod_cuenta: int) -> bool:
+    """True si la cuenta tiene saldo normal HABER."""
+    primer = int(str(cod_cuenta)[0])
+    return primer in _PRIMER_DIGITO_HABER
+
+
+# ─── Libro Mayor plano ────────────────────────────────────────
 
 def obtener_libro_mayor(cod_cuenta: int = None) -> list:
     """
-    Retorna los movimientos del Libro Mayor.
-    Si cod_cuenta es None → retorna todas las cuentas.
-    cod_cuenta debe ser de 2 dígitos.
+    Retorna los movimientos del Libro Mayor con saldo acumulado
+    calculado correctamente según la naturaleza de cada cuenta.
     """
     conexion = obtener_conexion()
     if not conexion:
@@ -31,27 +43,30 @@ def obtener_libro_mayor(cod_cuenta: int = None) -> list:
             FROM MAYOR M
         """
         params = []
-
         if cod_cuenta is not None:
             query += " WHERE M.COD_CUENTA = ?"
             params.append(int(cod_cuenta))
-
         query += " ORDER BY M.COD_CUENTA, M.FECHA_REGISTRO_ASIENTO"
 
         cursor.execute(query, params)
         filas = cursor.fetchall()
 
         resultado       = []
-        saldo_acumulado = {}
+        saldo_acumulado = {}   # { cod: float }
 
         for f in filas:
-            cod = f[0]
+            cod   = f[0]
+            debe  = float(f[4] or 0)
+            haber = float(f[5] or 0)
+
             if cod not in saldo_acumulado:
                 saldo_acumulado[cod] = 0.0
 
-            debe  = float(f[4] or 0)
-            haber = float(f[5] or 0)
-            saldo_acumulado[cod] += debe - haber
+            # Saldo acumulado según naturaleza
+            if _es_cuenta_haber(cod):
+                saldo_acumulado[cod] += haber - debe   # acreedora
+            else:
+                saldo_acumulado[cod] += debe  - haber  # deudora
 
             resultado.append({
                 "cod_cuenta":      cod,
@@ -72,10 +87,14 @@ def obtener_libro_mayor(cod_cuenta: int = None) -> list:
         cerrar_conexion(conexion)
 
 
+# ─── Libro Mayor agrupado por cuenta ─────────────────────────
+
 def obtener_mayor_agrupado() -> list:
     """
-    Retorna el libro mayor agrupado por cuenta (2 dígitos),
-    con totales y saldo final.
+    Libro Mayor agrupado por cuenta con totales y saldo final.
+
+    saldo_final → siempre positivo; naturaleza indica si es
+    DEUDOR o ACREEDOR.
     """
     movimientos = obtener_libro_mayor()
     if not movimientos:
@@ -98,20 +117,35 @@ def obtener_mayor_agrupado() -> list:
 
     resultado = []
     for cod, data in sorted(cuentas.items()):
-        saldo = round(data["total_debe"] - data["total_haber"], 2)
-        data["total_debe"]  = round(data["total_debe"],  2)
-        data["total_haber"] = round(data["total_haber"], 2)
-        data["saldo_final"] = abs(saldo)
-        data["naturaleza"]  = "DEUDOR" if saldo >= 0 else "ACREEDOR"
+        td = round(data["total_debe"],  2)
+        th = round(data["total_haber"], 2)
+
+        # Saldo neto según naturaleza
+        if _es_cuenta_haber(cod):
+            saldo_neto = round(th - td, 2)   # acreedora: saldo H
+        else:
+            saldo_neto = round(td - th, 2)   # deudora:   saldo D
+
+        data["total_debe"]  = td
+        data["total_haber"] = th
+        data["saldo_final"] = abs(saldo_neto)
+        data["naturaleza"]  = "ACREEDOR" if _es_cuenta_haber(cod) else "DEUDOR"
         resultado.append(data)
 
     return resultado
 
 
+# ─── Saldos por cuenta para balance y estados financieros ────
+
 def obtener_saldos_por_cuenta() -> dict:
     """
-    Retorna { cod_cuenta (2 dig): {"debe", "haber", "saldo", "nombre"} }
-    Solo cuentas activas de 2 dígitos (COD_CUENTA < 100).
+    Retorna { cod_cuenta: {"debe", "haber", "saldo_neto", "nombre"} }
+
+    - debe / haber → acumulados brutos (suma de todos los movimientos)
+    - saldo_neto   → saldo según naturaleza (positivo = saldo normal,
+                     negativo = saldo contrario a su naturaleza)
+
+    Solo cuentas de 2 dígitos (10–99) con al menos un movimiento.
     """
     conexion = obtener_conexion()
     if not conexion:
@@ -119,7 +153,6 @@ def obtener_saldos_por_cuenta() -> dict:
 
     try:
         cursor = conexion.cursor()
-        # Filtra solo cuentas de 2 dígitos (10 a 99)
         cursor.execute("""
             SELECT
                 COD_CUENTA,
@@ -138,11 +171,20 @@ def obtener_saldos_por_cuenta() -> dict:
             cod   = f[0]
             debe  = float(f[2] or 0)
             haber = float(f[3] or 0)
+
+            if debe == 0 and haber == 0:
+                continue  # sin movimientos, no incluir
+
+            if _es_cuenta_haber(cod):
+                saldo_neto = round(haber - debe, 2)
+            else:
+                saldo_neto = round(debe  - haber, 2)
+
             saldos[cod] = {
-                "nombre": f[1],
-                "debe":   debe,
-                "haber":  haber,
-                "saldo":  round(debe - haber, 2)
+                "nombre":     f[1],
+                "debe":       debe,
+                "haber":      haber,
+                "saldo_neto": saldo_neto,
             }
         return saldos
 
