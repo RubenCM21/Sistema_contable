@@ -28,3 +28,4 @@ pytesseract
 Pillow
 SpeechRecognition
 pydub
+tesseract
